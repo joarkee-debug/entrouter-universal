@@ -19,6 +19,7 @@ use std::collections::HashMap;
 use serde::{Deserialize, Serialize};
 use crate::{encode_str, decode_str, fingerprint_str, UniversalError};
 
+/// A single field wrapped with its Base64 encoding and SHA-256 fingerprint.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct WrappedField {
     /// Field name
@@ -30,6 +31,7 @@ pub struct WrappedField {
 }
 
 impl WrappedField {
+    /// Wrap a named value, producing its Base64 encoding and fingerprint.
     pub fn wrap(name: &str, value: &str) -> Self {
         Self {
             name: name.to_string(),
@@ -38,6 +40,7 @@ impl WrappedField {
         }
     }
 
+    /// Decode and verify this field, returning the original value on success.
     pub fn verify(&self) -> Result<String, UniversalError> {
         let decoded = decode_str(&self.d)?;
         let actual_fp = fingerprint_str(&decoded);
@@ -50,21 +53,32 @@ impl WrappedField {
         Ok(decoded)
     }
 
+    /// Returns `true` if verification passes.
     pub fn is_intact(&self) -> bool {
         self.verify().is_ok()
     }
 }
 
+/// A collection of individually-wrapped fields.
+///
+/// Each field carries its own Base64 encoding and SHA-256 fingerprint,
+/// so a single corrupted field can be identified without re-verifying
+/// the rest.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct UniversalStruct {
     pub fields: Vec<WrappedField>,
 }
 
+/// Per-field verification result.
 #[derive(Debug, Clone, PartialEq)]
 pub struct FieldVerifyResult {
+    /// The field name.
     pub name:    String,
+    /// `true` if the field passed integrity verification.
     pub intact:  bool,
+    /// The decoded value, if verification succeeded.
     pub value:   Option<String>,
+    /// Error message, if verification failed.
     pub error:   Option<String>,
 }
 
@@ -79,10 +93,14 @@ impl std::fmt::Display for FieldVerifyResult {
     }
 }
 
+/// Aggregated result of verifying every field in a [`UniversalStruct`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct StructVerifyResult {
+    /// `true` if every field passed verification.
     pub all_intact:  bool,
+    /// Individual per-field results.
     pub fields:      Vec<FieldVerifyResult>,
+    /// Names of fields that failed verification.
     pub violations:  Vec<String>,
 }
 
@@ -188,11 +206,13 @@ impl UniversalStruct {
         out
     }
 
+    /// Serialize this struct to a JSON string.
     pub fn to_json(&self) -> Result<String, UniversalError> {
         serde_json::to_string(self)
             .map_err(|e| UniversalError::SerializationError(e.to_string()))
     }
 
+    /// Deserialize a struct from a JSON string.
     pub fn from_json(s: &str) -> Result<Self, UniversalError> {
         serde_json::from_str(s)
             .map_err(|e| UniversalError::SerializationError(e.to_string()))

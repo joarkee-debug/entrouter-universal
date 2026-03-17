@@ -22,14 +22,30 @@ use crate::{fingerprint_str, UniversalError};
 #[cfg(feature = "compression")]
 use crate::compress::{compress, decompress};
 
+/// The encoding mode used to create an [`Envelope`].
 #[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
 pub enum EnvelopeMode {
+    /// Standard Base64 encoding.
     Standard,
+    /// URL-safe Base64 (`-` and `_` instead of `+` and `/`, no padding).
     UrlSafe,
+    /// Gzip compressed then Base64 encoded.
     Compressed,
+    /// Standard Base64 with a Unix-timestamp expiry.
     Ttl,
 }
 
+/// A sealed envelope that carries data, its SHA-256 fingerprint, and an
+/// encoding mode.
+///
+/// # Example
+///
+/// ```
+/// use entrouter_universal::Envelope;
+///
+/// let env = Envelope::wrap("secret payload");
+/// assert_eq!(env.unwrap_verified().unwrap(), "secret payload");
+/// ```
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Envelope {
     /// Encoded data - opaque to every layer
@@ -195,7 +211,7 @@ impl Envelope {
             .map_err(|e| UniversalError::DecodeError(e.to_string()))
     }
 
-    /// Check if expired (TTL mode only)
+    /// Returns `true` if this envelope has expired (TTL mode only).
     pub fn is_expired(&self) -> bool {
         if let Some(expiry) = self.e {
             let now = SystemTime::now()
@@ -217,23 +233,30 @@ impl Envelope {
         Some(expiry.saturating_sub(now))
     }
 
+    /// Returns `true` if the data passes integrity verification.
+    ///
+    /// Convenience wrapper around [`Envelope::unwrap_verified`].
     pub fn is_intact(&self) -> bool {
         self.unwrap_verified().is_ok()
     }
 
+    /// Returns the SHA-256 fingerprint of the original data.
     pub fn fingerprint(&self) -> &str {
         &self.f
     }
 
+    /// Returns the [`EnvelopeMode`] used to create this envelope.
     pub fn mode(&self) -> EnvelopeMode {
         self.m
     }
 
+    /// Serialize this envelope to a JSON string.
     pub fn to_json(&self) -> Result<String, UniversalError> {
         serde_json::to_string(self)
             .map_err(|e| UniversalError::SerializationError(e.to_string()))
     }
 
+    /// Deserialize an envelope from a JSON string.
     pub fn from_json(s: &str) -> Result<Self, UniversalError> {
         serde_json::from_str(s)
             .map_err(|e| UniversalError::SerializationError(e.to_string()))

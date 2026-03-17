@@ -4,15 +4,37 @@
 
 use crate::{encode_str, decode_str, fingerprint_str};
 
+/// A record of a single checkpoint in the pipeline.
 #[derive(Debug, Clone)]
 pub struct LayerRecord {
+    /// Human-readable name of this pipeline stage.
     pub layer:       String,
+    /// The Base64-encoded payload at this stage.
     pub encoded:     String,
+    /// SHA-256 fingerprint computed at this stage.
     pub fingerprint: String,
+    /// `true` if the fingerprint still matches the original.
     pub intact:      bool,
+    /// Decode error message, if the payload could not be decoded.
     pub error:       Option<String>,
 }
 
+/// Tracks data integrity across multiple pipeline stages.
+///
+/// Create a `Guardian` with [`Guardian::new`], then call
+/// [`Guardian::checkpoint`] after each stage to record whether the
+/// data is still intact.
+///
+/// # Example
+///
+/// ```
+/// use entrouter_universal::Guardian;
+///
+/// let mut g = Guardian::new("hello");
+/// let enc = g.encoded().to_string();
+/// g.checkpoint("step-1", &enc);
+/// assert!(g.is_intact());
+/// ```
 #[derive(Debug, Clone)]
 pub struct Guardian {
     original_fingerprint: String,
@@ -21,6 +43,7 @@ pub struct Guardian {
 }
 
 impl Guardian {
+    /// Create a new guardian for `input`.
     #[must_use]
     pub fn new(input: &str) -> Self {
         Self {
@@ -30,6 +53,7 @@ impl Guardian {
         }
     }
 
+    /// Record a checkpoint, comparing `current_encoded` against the original fingerprint.
     pub fn checkpoint(&mut self, layer_name: &str, current_encoded: &str) {
         match decode_str(current_encoded) {
             Ok(decoded) => {
@@ -55,22 +79,27 @@ impl Guardian {
         }
     }
 
+    /// Returns the Base64-encoded form of the original input.
     pub fn encoded(&self) -> &str {
         &self.encoded
     }
 
+    /// Returns the SHA-256 fingerprint of the original input.
     pub fn original_fingerprint(&self) -> &str {
         &self.original_fingerprint
     }
 
+    /// Returns the first checkpoint that failed verification, if any.
     pub fn first_violation(&self) -> Option<&LayerRecord> {
         self.layers.iter().find(|l| !l.intact)
     }
 
+    /// Returns `true` if every checkpoint passed verification.
     pub fn is_intact(&self) -> bool {
         self.layers.iter().all(|l| l.intact)
     }
 
+    /// Panics with a diagnostic message if any checkpoint is violated.
     pub fn assert_intact(&self) {
         if let Some(v) = self.first_violation() {
             panic!(
@@ -80,6 +109,7 @@ impl Guardian {
         }
     }
 
+    /// Returns a human-readable pipeline integrity report.
     pub fn report(&self) -> String {
         let mut out = String::new();
         out.push_str("━━━━ Entrouter Universal Pipeline Report ━━━━\n");

@@ -1,9 +1,25 @@
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Entrouter Universal v0.3
-//
-//  Pipeline integrity guardian.
-//  What goes in, comes out identical.
-// ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+//! # Entrouter Universal
+//!
+//! Pipeline integrity guardian. What goes in, comes out identical.
+//!
+//! This crate provides Base64 encoding, SHA-256 fingerprinting, and integrity
+//! verification primitives that can be composed into higher-level constructs:
+//!
+//! - [`Envelope`] -- wrap data in one of four modes (standard, URL-safe, compressed, TTL)
+//! - [`Guardian`] -- track data through a multi-layer pipeline and detect where mutations occur
+//! - [`Chain`] -- build a cryptographic audit trail where each link references the previous
+//! - [`UniversalStruct`] -- wrap individual struct fields so you know *which* field was tampered with
+//!
+//! # Quick start
+//!
+//! ```rust
+//! use entrouter_universal::{encode_str, decode_str, fingerprint_str, verify};
+//!
+//! let encoded = encode_str("hello world");
+//! let fp = fingerprint_str("hello world");
+//! let result = verify(&encoded, &fp).unwrap();
+//! assert!(result.intact);
+//! ```
 
 use base64::{engine::general_purpose::STANDARD, Engine};
 use sha2::{Digest, Sha256};
@@ -26,6 +42,7 @@ pub use universal_struct::UniversalStruct;
 
 // ── Errors ────────────────────────────────────────────────
 
+/// Errors returned by Entrouter Universal operations.
 #[derive(Debug, Clone, PartialEq, Error)]
 #[non_exhaustive]
 pub enum UniversalError {
@@ -50,27 +67,47 @@ pub enum UniversalError {
 
 // ── Core primitives ───────────────────────────────────────
 
+/// Base64-encode raw bytes.
+///
+/// ```
+/// let b64 = entrouter_universal::encode(b"hello");
+/// assert_eq!(b64, "aGVsbG8=");
+/// ```
 #[must_use]
 pub fn encode(input: &[u8]) -> String {
     STANDARD.encode(input)
 }
 
+/// Decode a Base64 string back to raw bytes.
 pub fn decode(input: &str) -> Result<Vec<u8>, UniversalError> {
     STANDARD.decode(input)
         .map_err(|e| UniversalError::DecodeError(e.to_string()))
 }
 
+/// Base64-encode a UTF-8 string.
+///
+/// ```
+/// let b64 = entrouter_universal::encode_str("hello");
+/// assert_eq!(entrouter_universal::decode_str(&b64).unwrap(), "hello");
+/// ```
 #[must_use]
 pub fn encode_str(input: &str) -> String {
     encode(input.as_bytes())
 }
 
+/// Decode a Base64 string back to a UTF-8 [`String`].
 pub fn decode_str(input: &str) -> Result<String, UniversalError> {
     let bytes = decode(input)?;
     String::from_utf8(bytes)
         .map_err(|e| UniversalError::DecodeError(e.to_string()))
 }
 
+/// Compute a SHA-256 fingerprint of raw bytes, returned as a hex string.
+///
+/// ```
+/// let fp = entrouter_universal::fingerprint(b"hello");
+/// assert_eq!(fp.len(), 64); // 256-bit hex
+/// ```
 #[must_use]
 pub fn fingerprint(input: &[u8]) -> String {
     let mut hasher = Sha256::new();
@@ -78,11 +115,16 @@ pub fn fingerprint(input: &[u8]) -> String {
     hex::encode(hasher.finalize())
 }
 
+/// Compute a SHA-256 fingerprint of a UTF-8 string.
 #[must_use]
 pub fn fingerprint_str(input: &str) -> String {
     fingerprint(input.as_bytes())
 }
 
+/// Decode `encoded` and verify its fingerprint matches `original_fingerprint`.
+///
+/// Returns [`VerifyResult`] on success, or [`UniversalError::IntegrityViolation`]
+/// if the data was mutated.
 pub fn verify(encoded: &str, original_fingerprint: &str) -> Result<VerifyResult, UniversalError> {
     let decoded = decode(encoded)?;
     let actual_fingerprint = fingerprint(&decoded);

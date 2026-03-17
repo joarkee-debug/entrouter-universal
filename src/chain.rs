@@ -16,6 +16,7 @@ use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 use crate::{encode_str, fingerprint_str, UniversalError};
 
+/// A single link in a cryptographic chain.
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct ChainLink {
     /// Sequence number (1-based)
@@ -54,11 +55,16 @@ impl ChainLink {
     }
 }
 
+/// The result of verifying a [`Chain`].
 #[derive(Debug, Clone, PartialEq)]
 pub struct ChainVerifyResult {
+    /// `true` if every link is intact and properly linked.
     pub valid:          bool,
+    /// Total number of links inspected.
     pub total_links:    usize,
+    /// 1-based index of the first broken link, if any.
     pub broken_at:      Option<usize>,
+    /// Human-readable reason the chain is broken, if any.
     pub broken_reason:  Option<String>,
 }
 
@@ -180,6 +186,7 @@ impl Chain {
         self.links.len()
     }
 
+    /// Returns `true` if the chain has no links.
     pub fn is_empty(&self) -> bool {
         self.links.is_empty()
     }
@@ -190,6 +197,7 @@ impl Chain {
             .map_err(|e| UniversalError::SerializationError(e.to_string()))
     }
 
+    /// Deserialize a chain from a JSON string.
     pub fn from_json(s: &str) -> Result<Self, UniversalError> {
         serde_json::from_str(s)
             .map_err(|e| UniversalError::SerializationError(e.to_string()))
