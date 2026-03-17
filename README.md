@@ -1,4 +1,4 @@
-# entrouter-universal
+# Entrouter-Universal
 
 > **What goes in, comes out identical.**
 
