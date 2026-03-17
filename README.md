@@ -1,159 +1,211 @@
+<div align="center">
+
 # Entrouter-Universal
 
-[![Crates.io](https://img.shields.io/crates/v/entrouter-universal)](https://crates.io/crates/entrouter-universal)
-[![License](https://img.shields.io/crates/l/entrouter-universal)](https://github.com/joarkee-debug/Entrouter-Universal/blob/main/LICENSE)
-[![Rust](https://img.shields.io/badge/rust-1.63%2B-orange)](https://www.rust-lang.org)
-[![docs.rs](https://img.shields.io/docsrs/entrouter-universal)](https://docs.rs/entrouter-universal)
+### Pipeline Integrity Guardian
 
-> **What goes in, comes out identical.**
+[![Crates.io](https://img.shields.io/crates/v/entrouter-universal?style=flat-square&color=fc8d62)](https://crates.io/crates/entrouter-universal)
+[![Downloads](https://img.shields.io/crates/d/entrouter-universal?style=flat-square&color=66c2a5)](https://crates.io/crates/entrouter-universal)
+[![License](https://img.shields.io/crates/l/entrouter-universal?style=flat-square&color=8da0cb)](https://github.com/joarkee-debug/Entrouter-Universal/blob/main/LICENSE)
+[![Rust](https://img.shields.io/badge/rust-1.63%2B-orange?style=flat-square)](https://www.rust-lang.org)
+[![docs.rs](https://img.shields.io/docsrs/entrouter-universal?style=flat-square&color=e78ac3)](https://docs.rs/entrouter-universal)
 
-Your data goes through HTTP. Then JSON. Then Rust. Then Redis. Then Postgres.  
-Each layer thinks it's helping. Each layer is lying.  
-By the time your data arrives it's been touched by five strangers.
+**What goes in, comes out identical. Or it tells you exactly what broke and where.**
 
-`entrouter-universal` puts it in a box nobody can open.  
-**Base64 at entry. SHA-256 fingerprint travels with it. Verify at exit. Done.**
+```
+cargo install entrouter-universal
+```
+
+</div>
+
+---
+
+## The 20-Minute Problem, Fixed In 1 Second
+
+You're SSH'd into your VPS. You need to run a curl command with JSON. You know what happens next.
+
+<table>
+<tr>
+<td width="50%">
+
+**Before — The escaping nightmare**
+
+```
+$ ssh root@your-vps
+
+# Attempt 1
+curl -d '{"key":"val"}' ...
+> bash: unexpected EOF
+
+# Attempt 2
+curl -d "{\"key\":\"val\"}" ...
+> bash: unexpected token
+
+# Attempt 3
+curl -d '{\"key\":\"val\"}' ...
+> invalid JSON
+
+# Attempt 4
+curl -d '{"key":"val"}' ...
+> curl: (3) bad/illegal format
+
+  ...20 minutes later...
+```
+
+</td>
+<td width="50%">
+
+**After — One command**
+
+```
+$ echo 'curl -s -X POST \
+  -H "Content-Type: application/json" \
+  -H "Authorization: Bearer er_xxx" \
+  -d {"tier":"enterprise"} \
+  http://127.0.0.1:3000/admin/keys/generate' \
+  | entrouter ssh root@your-vps
+
+{"apiKey":"er_ent_9f3a...","tier":"enterprise"}
+
+# Done. First try. Every time.
+
+
+  
+```
+
+</td>
+</tr>
+</table>
+
+You type the command **exactly as you would locally**. Entrouter encodes it to safe base64, sends it over SSH, decodes on the server, executes it. Zero escaping. Zero thinking.
+
+---
+
+## How It Works
+
+```
+┌──────────────┐          ┌───────────────────────┐          ┌──────────────┐
+│  YOUR SHELL  │          │     SSH TRANSPORT      │          │  REMOTE VPS  │
+│              │  encode   │                       │  decode   │              │
+│  Raw command ├──────────►│  Safe base64 payload  ├──────────►│  Exact same  │
+│  with JSON,  │  SHA-256  │  Nothing to escape.   │  verify   │  command you │
+│  quotes, etc │  fingerprint  Nothing to break.   │  execute  │  typed.      │
+└──────────────┘          └───────────────────────┘          └──────────────┘
+```
+
+**Base64 at entry. SHA-256 fingerprint travels with it. Verify at exit.**
+
+Every layer between your keyboard and the destination — HTTP, JSON, Rust, Redis, Postgres, shell — sees a boring alphanumeric string. Nothing to escape. Nothing to mangle. Nothing to break.
+
+---
+
+## Quick Start
 
 ```bash
+# Install the CLI
+cargo install entrouter-universal
+
+# Or add the library to your project
 cargo add entrouter-universal
 ```
 
 ---
 
-## CLI - Use It From The Shell
+## CLI Commands
+
+Six commands. All pipe-friendly. All SSH-safe.
+
+| Command | What it does |
+|---|---|
+| `entrouter ssh <host>` | Pipe a command in, it runs on the remote machine. No escaping. |
+| `entrouter encode` | Stdin → base64 + SHA-256 fingerprint (JSON output) |
+| `entrouter decode` | JSON with encoded field → original data |
+| `entrouter verify` | JSON with encoded + fingerprint → INTACT or TAMPERED |
+| `entrouter raw-encode` | Stdin → raw base64 (no JSON wrapper) |
+| `entrouter raw-decode` | Base64 → original (no JSON wrapper) |
+
+### SSH — The Killer Feature
 
 ```bash
-cargo install entrouter-universal
+# Run ANY command on a remote server. Type it exactly how you would locally.
+echo 'curl -s -X POST -H "Content-Type: application/json" -d {"key":"value"} http://localhost:3000/api' | entrouter ssh root@your-vps
 ```
 
-Now you have the `entrouter` command. No more shell escaping nightmares:
+No quoting gymnastics. No backslash hell. No "it works locally but breaks over SSH." Just pipe your command and go.
+
+### Encode / Decode / Verify
 
 ```bash
-# Run ANY command on a remote server — no escaping needed. Ever.
-echo 'curl -s -X POST -H "Content-Type: application/json" -H "Authorization: Bearer er_xxx" -d '{"tier":"enterprise","keyType":"engine"}' http://127.0.0.1:3000/admin/keys/generate' | entrouter ssh root@your-vps
-# Just works. JSON arrives intact. Output comes back clean.
-```
-
-The `ssh` subcommand encodes your command locally, sends the safe base64 over SSH,
-decodes on the server, and executes it. You type the command exactly as you would locally.
-
-```bash
-# Encode anything — JSON, tokens, whatever. Comes out as safe base64 + fingerprint.
+# Encode anything — comes out as base64 + SHA-256 fingerprint
 echo '{"tier":"enterprise","keyType":"engine"}' | entrouter encode
 # {"encoded":"eyJ0aWVy...","fingerprint":"3eeb58ed..."}
-
-# Verify it survived the trip
-echo '{"encoded":"...","fingerprint":"..."}' | entrouter verify
-# INTACT
-# Decoded: {"tier":"enterprise","keyType":"engine"}
 
 # Decode it back
 echo '{"encoded":"...","fingerprint":"..."}' | entrouter decode
 # {"tier":"enterprise","keyType":"engine"}
 
-# Raw mode — just base64, no JSON wrapper
-echo 'hello world' | entrouter raw-encode
-echo 'aGVsbG8gd29ybGQ=' | entrouter raw-decode
+# Verify it survived the trip
+echo '{"encoded":"...","fingerprint":"..."}' | entrouter verify
+# INTACT
+# Decoded: {"tier":"enterprise","keyType":"engine"}
 ```
 
-**SSH to a VPS? Pipe-friendly. No escaping issues.**
+### Raw Mode — Pipe Anywhere
+
 ```bash
+# Just base64. No JSON wrapper. Perfect for piping.
+echo 'hello world' | entrouter raw-encode
+# aGVsbG8gd29ybGQ=
+
+echo 'aGVsbG8gd29ybGQ=' | entrouter raw-decode
+# hello world
+
 # Encode locally, send over SSH, decode on the other side
 echo '{"key":"value"}' | entrouter raw-encode | ssh root@your-vps "entrouter raw-decode"
 ```
 
 ---
 
-## The Problem You've Been Living With
+## The Library — Five Tools
 
-```
-You send:     {"token":"abc\"def","user":"john's data"}
-HTTP gets it: {"token":"abc\\"def","user":"john\\'s data"}
-JSON gets it: {"token":"abc\\\\"def","user":"john\\\\'s data"}
-Redis gets it: ...
-Postgres gets it: ...
-You receive:  what the fuck is this
-```
-
-Senior devs have been chasing this for decades.  
-You fix it in one line.
-
----
-
-## One Line Fix
+Entrouter isn't just a CLI. It's a Rust crate with five integrity tools for your backend.
 
 ```rust
-// Entry point - wrap it
-let env = Envelope::wrap(your_data);
-
-// Pass env.to_json() through literally everything
-// HTTP ✅  JSON ✅  Rust ✅  Redis ✅  Postgres ✅
-
-// Exit point - verify it
-let original = env.unwrap_verified().unwrap();
-// Identical. Every time. Or it errors and tells you exactly why.
+use entrouter_universal::*;
 ```
 
-That's it. That's the whole thing.
+### 1. Envelope — Four Flavours
 
----
+Wrap your data. Pass it through anything. Unwrap and verify on the other side.
 
-## Five Tools
-
-### 1. Envelope - Four Flavours
-
-**Standard** - works everywhere
 ```rust
+// Standard — works everywhere
 let env = Envelope::wrap(data);
 let original = env.unwrap_verified()?;
-```
 
-**URL-Safe** - headers, query params, URLs
-```rust
-// Uses - and _ instead of + and /
-// Zero breakage in URLs, HTTP headers, query strings
+// URL-Safe — uses - and _ instead of + and /
 let env = Envelope::wrap_url_safe(data);
-let original = env.unwrap_verified()?;
-```
 
-**Compressed** - large payloads
-```rust
-// Gzip first, then Base64
-// Smaller on the wire. Transparent to you.
+// Compressed — gzip first, then base64 (large payloads)
 let env = Envelope::wrap_compressed(data)?;
-let original = env.unwrap_verified()?; // auto-decompresses
-```
 
-**TTL - self-expiring data**
-```rust
-// Race tokens, session data, anything time-sensitive
+// TTL — self-expiring (race tokens, sessions, anything time-sensitive)
 let env = Envelope::wrap_with_ttl(data, 300); // dies in 5 minutes
-
-println!("{} secs left", env.ttl_remaining().unwrap());
-
-// 5 minutes later...
-env.unwrap_verified() // Err(Expired) - cannot be replayed
+env.unwrap_verified() // Err(Expired) after 5 min — cannot be replayed
 ```
 
-**Where to store it:**
+Store it anywhere:
 ```rust
-// Redis
-redis.set("key", env.to_json()?).await?;
-
-// Postgres
-db.execute("INSERT INTO table (envelope) VALUES ($1)", &[&env.to_json()?]).await?;
-
-// HTTP response
-Response::json(env) // serde-compatible, ships as-is
+redis.set("key", env.to_json()?).await?;                                        // Redis
+db.execute("INSERT INTO t (envelope) VALUES ($1)", &[&env.to_json()?]).await?;   // Postgres
+Response::json(env)                                                               // HTTP (serde-compatible)
 ```
 
 ---
 
-### 2. Chain - Cryptographic Audit Trail
+### 2. Chain — Cryptographic Audit Trail
 
-Each link references the previous link's fingerprint.  
-Tamper with any link - everything after it breaks.  
-You know exactly where the chain was cut.
+Each link references the previous link's fingerprint. Tamper with any link — everything after it breaks. You know exactly where the chain was cut.
 
 ```rust
 let mut chain = Chain::new("race:listing_abc - OPENED");
@@ -162,49 +214,27 @@ chain.append("user_jane joined - token: 000001739850000002");
 chain.append("WINNER: user_john - mathematically proven");
 chain.append("race:listing_abc - CLOSED");
 
-// Is the entire sequence intact?
-let result = chain.verify();
-assert!(result.valid);
-
-// Someone tampers with link 3
-chain.links[2].d = encode_str("TAMPERED");
-let result = chain.verify();
-println!("Broken at link: {}", result.broken_at.unwrap()); // 3
-
-// Full report
-println!("{}", chain.report());
-// ━━━━ Entrouter Universal Chain Report ━━━━
-// Links: 5 | Valid: false
-//   Link 1: ✅ | fp: a3f1b2...
-//   Link 2: ✅ | fp: 9f8e7d...
-//   Link 3: ❌ VIOLATED
-//   Link 4: ❌ VIOLATED
-//   Link 5: ❌ VIOLATED
+assert!(chain.verify().valid);
 ```
 
-**Where to store it:**
-```rust
-let json = chain.to_json()?;
-
-// Redis
-redis.set("race:abc:audit", &json).await?;
-
-// Postgres
-db.execute("INSERT INTO audit_log (chain) VALUES ($1)", &[&json]).await?;
-
-// Restore and verify anywhere, anytime
-let restored = Chain::from_json(&json)?;
-assert!(restored.verify().valid);
+Tamper detection:
+```
+━━━━ Entrouter Universal Chain Report ━━━━
+Links: 5 | Valid: false
+  Link 1: ✅ | fp: a3f1b2...
+  Link 2: ✅ | fp: 9f8e7d...
+  Link 3: ❌ VIOLATED          ← tampered here
+  Link 4: ❌ VIOLATED          ← cascade
+  Link 5: ❌ VIOLATED          ← cascade
 ```
 
 **Use case:** Legal proof of who won a race, in what order, with mathematical certainty. Download it. Verify it in court. Nobody argues with SHA-256.
 
 ---
 
-### 3. UniversalStruct - Per-Field Integrity
+### 3. UniversalStruct — Per-Field Integrity
 
-Not "something broke somewhere."  
-**"`amount` was tampered with between Redis and Postgres."**
+Not "something broke somewhere." You know **exactly which field** was tampered with.
 
 ```rust
 let wrapped = UniversalStruct::wrap_fields(&[
@@ -214,73 +244,42 @@ let wrapped = UniversalStruct::wrap_fields(&[
     ("listing_id", "listing:abc123"),
 ]);
 
-// Everything intact
-let result = wrapped.verify_all();
-assert!(result.all_intact);
-
-// Get a specific field - verified on access
-let token = wrapped.get("token")?;
-
-// Get everything as a HashMap
-let map = wrapped.to_map()?;
-
-// Simulate Redis mangling the amount field
-wrapped.fields[2].d = encode_str("999999.99");
-
-let result = wrapped.verify_all();
-// token      ✅
-// user_id    ✅
-// amount     ❌  ← you know exactly which field
-// listing_id ✅
-
-println!("{}", wrapped.report());
-// ━━━━ Entrouter Universal Field Report ━━━━
-//   token:      ✅ - 000001739850123456...
-//   user_id:    ✅ - john
-//   amount:     ❌ VIOLATED
-//   listing_id: ✅ - listing:abc123
+assert!(wrapped.verify_all().all_intact);
 ```
 
-**Where to store it:**
-```rust
-let json = wrapped.to_json()?;
-
-// Redis
-redis.set("winner:abc", &json).await?;
-
-// Postgres
-db.execute("INSERT INTO race_winners (fields) VALUES ($1)", &[&json]).await?;
-
-// Restore and verify field-by-field on the other side
-let restored = UniversalStruct::from_json(&json)?;
-let amount = restored.get("amount")?; // verified or Err
+Tamper detection:
+```
+━━━━ Entrouter Universal Field Report ━━━━
+  token:      ✅ - 000001739850123456...
+  user_id:    ✅ - john
+  amount:     ❌ VIOLATED              ← Redis mangled this one
+  listing_id: ✅ - listing:abc123
 ```
 
 ---
 
-### 4. Guardian - Find The Exact Layer That Broke It
+### 4. Guardian — Find The Exact Layer That Broke It
+
+Checkpoint your data at every layer. Guardian tells you exactly which one corrupted it.
 
 ```rust
 let mut g = Guardian::new(data);
-let encoded = g.encoded().to_string();
 
 g.checkpoint("http_ingress",    &value_at_http);
 g.checkpoint("json_parse",      &value_at_json);
 g.checkpoint("redis_write",     &value_at_redis);
 g.checkpoint("postgres_write",  &value_at_postgres);
-
-println!("Broken at: {}", g.first_violation().unwrap().layer);
-// "redis_write"
-
-println!("{}", g.report());
-// ━━━━ Entrouter Universal Pipeline Report ━━━━
-//   Layer 1: http_ingress   - ✅
-//   Layer 2: json_parse     - ✅
-//   Layer 3: redis_write    - ❌ VIOLATED
-//   Layer 4: postgres_write - ❌ VIOLATED
-
-g.assert_intact(); // panics with layer name in tests
 ```
+
+```
+━━━━ Entrouter Universal Pipeline Report ━━━━
+  Layer 1: http_ingress   - ✅
+  Layer 2: json_parse     - ✅
+  Layer 3: redis_write    - ❌ VIOLATED     ← broke here
+  Layer 4: postgres_write - ❌ VIOLATED     ← cascade
+```
+
+`g.assert_intact()` — panics with the layer name in your tests.
 
 ---
 
@@ -289,37 +288,40 @@ g.assert_intact(); // panics with layer name in tests
 ```rust
 use entrouter_universal::{encode_str, decode_str, fingerprint_str, verify};
 
-let encoded  = encode_str(data);
-let original = decode_str(&encoded)?;
-let fp       = fingerprint_str(data);
-let result   = verify(&encoded, &fp)?;
+let encoded  = encode_str(data);          // → base64
+let original = decode_str(&encoded)?;     // → original
+let fp       = fingerprint_str(data);     // → SHA-256 hex
+let intact   = verify(&encoded, &fp)?;    // → bool
 ```
 
 ---
 
-## Why Base64
+## Why Base64?
 
-| Layer | Breaks on | Base64 safe? |
+| Layer | Characters that break it | Base64 safe? |
 |---|---|---|
 | HTTP | `"`, `\`, newlines | ✅ |
 | JSON | `"`, `\`, control chars | ✅ |
-| Rust | `"`, `\`, null bytes | ✅ |
+| Shell | `'`, `"`, `$`, `` ` ``, `\`, spaces | ✅ |
 | Redis | newlines, spaces | ✅ |
 | Postgres | `'`, `\`, null bytes | ✅ |
-| URLs | `+`, `/`, `=` (use url_safe) | ✅ |
+| URLs | `+`, `/`, `=` (use `wrap_url_safe`) | ✅ |
 
-Every layer sees a boring alphanumeric string. Nothing to escape. Problem solved at the encoding level - not the escaping level.
+Every layer sees a boring alphanumeric string. Problem solved at the encoding level — not the escaping level.
 
 ---
 
 ## Cross-Machine
 
-Both boxes. One crate. Base64 and SHA-256 are universal standards - identical on Windows, Linux, Mac, ARM, x86, anywhere.
+Base64 and SHA-256 are universal standards. Identical output on Windows, Linux, Mac, ARM, x86, anywhere.
 
 ```
-Your PC                         Ubuntu VPS
-Envelope::wrap(data)    →SSH→   Envelope::from_json(wire)
-                                .unwrap_verified() ✅
+Your Machine                         Your VPS
+┌────────────────────┐               ┌────────────────────┐
+│ Envelope::wrap()   │───── SSH ────►│ Envelope::from_json│
+│ or: entrouter ssh  │               │ .unwrap_verified() │
+│                    │               │ ✅ Identical.       │
+└────────────────────┘               └────────────────────┘
 ```
 
 ---
@@ -343,21 +345,20 @@ Zero-width chars     ✅  ​‌‍
 
 ---
 
-## v0.5 - SSH Command
+## Changelog
 
+### v0.5 — SSH Command
 - `entrouter ssh <host>` — type the command, it runs on the remote machine. No escaping.
 - Encodes locally, decodes on server, executes via `sh`. One step.
 
-## v0.4 - CLI
-
+### v0.4 — CLI
 - `entrouter` CLI binary — encode, decode, verify, raw-encode, raw-decode from the shell
 - Pipe-friendly, works over SSH, no shell escaping issues
-- `cargo install entrouter-universal` to get it
+- `cargo install entrouter-universal`
 
-## v0.3 Improvements
-
-- `#[must_use]` on all constructors and pure functions - compiler warns if you ignore a return value
-- `#[non_exhaustive]` on `UniversalError` - new variants won't break downstream
+### v0.3 — Hardening
+- `#[must_use]` on all constructors and pure functions
+- `#[non_exhaustive]` on `UniversalError`
 - `Clone` and `PartialEq` on all error and result types - testable in assertions
 - `Display` impls on `VerifyResult`, `ChainVerifyResult`, `StructVerifyResult`, `FieldVerifyResult`
 - New `SerializationError` variant - JSON failures no longer misreport as `MalformedEnvelope`
