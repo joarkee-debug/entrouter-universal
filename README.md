@@ -34,13 +34,13 @@ You fix it in one line.
 ## One Line Fix
 
 ```rust
-// Entry point — wrap it
+// Entry point - wrap it
 let env = Envelope::wrap(your_data);
 
 // Pass env.to_json() through literally everything
 // HTTP ✅  JSON ✅  Rust ✅  Redis ✅  Postgres ✅
 
-// Exit point — verify it
+// Exit point - verify it
 let original = env.unwrap_verified().unwrap();
 // Identical. Every time. Or it errors and tells you exactly why.
 ```
@@ -51,15 +51,15 @@ That's it. That's the whole thing.
 
 ## Five Tools
 
-### 1. Envelope — Four Flavours
+### 1. Envelope - Four Flavours
 
-**Standard** — works everywhere
+**Standard** - works everywhere
 ```rust
 let env = Envelope::wrap(data);
 let original = env.unwrap_verified()?;
 ```
 
-**URL-Safe** — headers, query params, URLs
+**URL-Safe** - headers, query params, URLs
 ```rust
 // Uses - and _ instead of + and /
 // Zero breakage in URLs, HTTP headers, query strings
@@ -67,7 +67,7 @@ let env = Envelope::wrap_url_safe(data);
 let original = env.unwrap_verified()?;
 ```
 
-**Compressed** — large payloads
+**Compressed** - large payloads
 ```rust
 // Gzip first, then Base64
 // Smaller on the wire. Transparent to you.
@@ -75,7 +75,7 @@ let env = Envelope::wrap_compressed(data)?;
 let original = env.unwrap_verified()?; // auto-decompresses
 ```
 
-**TTL — self-expiring data**
+**TTL - self-expiring data**
 ```rust
 // Race tokens, session data, anything time-sensitive
 let env = Envelope::wrap_with_ttl(data, 300); // dies in 5 minutes
@@ -83,7 +83,7 @@ let env = Envelope::wrap_with_ttl(data, 300); // dies in 5 minutes
 println!("{} secs left", env.ttl_remaining().unwrap());
 
 // 5 minutes later...
-env.unwrap_verified() // Err(Expired) — cannot be replayed
+env.unwrap_verified() // Err(Expired) - cannot be replayed
 ```
 
 **Where to store it:**
@@ -100,18 +100,18 @@ Response::json(env) // serde-compatible, ships as-is
 
 ---
 
-### 2. Chain — Cryptographic Audit Trail
+### 2. Chain - Cryptographic Audit Trail
 
 Each link references the previous link's fingerprint.  
-Tamper with any link — everything after it breaks.  
+Tamper with any link - everything after it breaks.  
 You know exactly where the chain was cut.
 
 ```rust
-let mut chain = Chain::new("race:listing_abc — OPENED");
-chain.append("user_john joined — token: 000001739850000001");
-chain.append("user_jane joined — token: 000001739850000002");
-chain.append("WINNER: user_john — mathematically proven");
-chain.append("race:listing_abc — CLOSED");
+let mut chain = Chain::new("race:listing_abc - OPENED");
+chain.append("user_john joined - token: 000001739850000001");
+chain.append("user_jane joined - token: 000001739850000002");
+chain.append("WINNER: user_john - mathematically proven");
+chain.append("race:listing_abc - CLOSED");
 
 // Is the entire sequence intact?
 let result = chain.verify();
@@ -152,7 +152,7 @@ assert!(restored.verify().valid);
 
 ---
 
-### 3. UniversalStruct — Per-Field Integrity
+### 3. UniversalStruct - Per-Field Integrity
 
 Not "something broke somewhere."  
 **"`amount` was tampered with between Redis and Postgres."**
@@ -169,7 +169,7 @@ let wrapped = UniversalStruct::wrap_fields(&[
 let result = wrapped.verify_all();
 assert!(result.all_intact);
 
-// Get a specific field — verified on access
+// Get a specific field - verified on access
 let token = wrapped.get("token")?;
 
 // Get everything as a HashMap
@@ -186,10 +186,10 @@ let result = wrapped.verify_all();
 
 println!("{}", wrapped.report());
 // ━━━━ Entrouter Universal Field Report ━━━━
-//   token:      ✅ — 000001739850123456...
-//   user_id:    ✅ — john
+//   token:      ✅ - 000001739850123456...
+//   user_id:    ✅ - john
 //   amount:     ❌ VIOLATED
-//   listing_id: ✅ — listing:abc123
+//   listing_id: ✅ - listing:abc123
 ```
 
 **Where to store it:**
@@ -209,7 +209,7 @@ let amount = restored.get("amount")?; // verified or Err
 
 ---
 
-### 4. Guardian — Find The Exact Layer That Broke It
+### 4. Guardian - Find The Exact Layer That Broke It
 
 ```rust
 let mut g = Guardian::new(data);
@@ -225,10 +225,10 @@ println!("Broken at: {}", g.first_violation().unwrap().layer);
 
 println!("{}", g.report());
 // ━━━━ Entrouter Universal Pipeline Report ━━━━
-//   Layer 1: http_ingress   — ✅
-//   Layer 2: json_parse     — ✅
-//   Layer 3: redis_write    — ❌ VIOLATED
-//   Layer 4: postgres_write — ❌ VIOLATED
+//   Layer 1: http_ingress   - ✅
+//   Layer 2: json_parse     - ✅
+//   Layer 3: redis_write    - ❌ VIOLATED
+//   Layer 4: postgres_write - ❌ VIOLATED
 
 g.assert_intact(); // panics with layer name in tests
 ```
@@ -259,13 +259,13 @@ let result   = verify(&encoded, &fp)?;
 | Postgres | `'`, `\`, null bytes | ✅ |
 | URLs | `+`, `/`, `=` (use url_safe) | ✅ |
 
-Every layer sees a boring alphanumeric string. Nothing to escape. Problem solved at the encoding level — not the escaping level.
+Every layer sees a boring alphanumeric string. Nothing to escape. Problem solved at the encoding level - not the escaping level.
 
 ---
 
 ## Cross-Machine
 
-Both boxes. One crate. Base64 and SHA-256 are universal standards — identical on Windows, Linux, Mac, ARM, x86, anywhere.
+Both boxes. One crate. Base64 and SHA-256 are universal standards - identical on Windows, Linux, Mac, ARM, x86, anywhere.
 
 ```
 Your PC                         Ubuntu VPS
@@ -295,8 +295,8 @@ Zero-width chars     ✅  ​‌‍
 ---
 
 ## License
-Apache-2.0 — Free for open-source.
+Apache-2.0 - Free for open-source.
 Commercial license available for closed-source / proprietary use.
 Contact hello@entrouter.com
 
-*Part of the Entrouter suite — [entrouter.com](https://entrouter.com)*
+*Part of the Entrouter suite - [entrouter.com](https://entrouter.com)*

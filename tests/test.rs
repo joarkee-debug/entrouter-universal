@@ -1,5 +1,5 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Entrouter Universal v0.2 — Full Integration Test Suite
+//  Entrouter Universal v0.2 - Full Integration Test Suite
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 use entrouter_universal::{
@@ -25,7 +25,7 @@ static NIGHTMARE: &str = concat!(
 );
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  SUITE 1 — All Envelope Modes
+//  SUITE 1 - All Envelope Modes
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[test]
@@ -38,7 +38,7 @@ fn suite_envelope_all_modes() {
     assert_eq!(NIGHTMARE, result);
     println!("✅ Standard: nightmare payload survived");
 
-    // URL safe — no + or / characters
+    // URL safe - no + or / characters
     let env_url = Envelope::wrap_url_safe(NIGHTMARE);
     assert!(env_url.d.chars().all(|c| c.is_alphanumeric() || c == '-' || c == '_'));
     assert_eq!(NIGHTMARE, env_url.unwrap_verified().unwrap());
@@ -78,7 +78,7 @@ fn suite_envelope_all_modes() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  SUITE 2 — Chain Verification
+//  SUITE 2 - Chain Verification
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[test]
@@ -86,12 +86,12 @@ fn suite_chain() {
     println!("\n━━━━ SUITE 2: Chain Verification ━━━━\n");
 
     // Build a race audit chain
-    let mut chain = Chain::new("race:listing_abc123 — OPENED");
-    chain.append("user_john joined — token: 000001739850000001");
-    chain.append("user_jane joined — token: 000001739850000002");
-    chain.append("user_bob  joined — token: 000001739850000003");
-    chain.append(&format!("WINNER: user_john — token: 000001739850000001 — payload: {}", NIGHTMARE));
-    chain.append("race:listing_abc123 — CLOSED");
+    let mut chain = Chain::new("race:listing_abc123 - OPENED");
+    chain.append("user_john joined - token: 000001739850000001");
+    chain.append("user_jane joined - token: 000001739850000002");
+    chain.append("user_bob  joined - token: 000001739850000003");
+    chain.append(&format!("WINNER: user_john - token: 000001739850000001 - payload: {}", NIGHTMARE));
+    chain.append("race:listing_abc123 - CLOSED");
 
     let result = chain.verify();
     assert!(result.valid);
@@ -101,7 +101,7 @@ fn suite_chain() {
 
     // Tamper with middle link
     let mut tampered = chain.clone();
-    tampered.links[3].d = encode_str("TAMPERED — user_bob wins instead");
+    tampered.links[3].d = encode_str("TAMPERED - user_bob wins instead");
     let tampered_result = tampered.verify();
     assert!(!tampered_result.valid);
     assert_eq!(tampered_result.broken_at, Some(4));
@@ -115,7 +115,7 @@ fn suite_chain() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  SUITE 3 — Per-Field Struct Wrapping
+//  SUITE 3 - Per-Field Struct Wrapping
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[test]
@@ -138,7 +138,7 @@ fn suite_universal_struct() {
     println!("✅ All 5 fields verified intact");
     println!("{}", wrapped.report());
 
-    // Mutate just the amount — simulates financial data tampering
+    // Mutate just the amount - simulates financial data tampering
     let mut tampered = wrapped.clone();
     tampered.fields[2].d = encode_str("999999.99");
     let result = tampered.verify_all();
@@ -149,7 +149,7 @@ fn suite_universal_struct() {
     assert!(result.fields[1].intact); // user_id still good
     assert!(!result.fields[2].intact); // amount VIOLATED
     assert!(result.fields[3].intact); // listing_id still good
-    println!("✅ Field mutation detected — only 'amount' violated");
+    println!("✅ Field mutation detected - only 'amount' violated");
     println!("{}", tampered.report());
 
     // to_map
@@ -167,7 +167,7 @@ fn suite_universal_struct() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  SUITE 4 — Guardian Full Pipeline
+//  SUITE 4 - Guardian Full Pipeline
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[test]
@@ -203,7 +203,7 @@ fn suite_guardian() {
 }
 
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  SUITE 5 — Cross-machine simulation
+//  SUITE 5 - Cross-machine simulation
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 #[test]
@@ -217,11 +217,11 @@ fn suite_cross_machine() {
     let env = Envelope::wrap(NIGHTMARE);
     let wire_payload = env.to_json().unwrap();
 
-    // "VPS side" — receives wire_payload over SSH/network
+    // "VPS side" - receives wire_payload over SSH/network
     let received = Envelope::from_json(&wire_payload).unwrap();
     let verified = received.unwrap_verified().unwrap();
     assert_eq!(NIGHTMARE, verified);
-    println!("✅ Cross-machine: PC wrapped → VPS verified — identical");
+    println!("✅ Cross-machine: PC wrapped → VPS verified - identical");
 
     // With per-field struct
     let wrapped = UniversalStruct::wrap_fields(&[

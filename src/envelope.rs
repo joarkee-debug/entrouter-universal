@@ -1,11 +1,11 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Entrouter Universal — Envelope v2
+//  Entrouter Universal - Envelope v2
 //
 //  Four wrap modes:
-//  1. wrap()             — standard Base64
-//  2. wrap_url_safe()    — URL-safe Base64 (- and _ instead of + and /)
-//  3. wrap_compressed()  — gzip then Base64 (smaller wire size)
-//  4. wrap_with_ttl()    — standard Base64 + expiry timestamp
+//  1. wrap()             - standard Base64
+//  2. wrap_url_safe()    - URL-safe Base64 (- and _ instead of + and /)
+//  3. wrap_compressed()  - gzip then Base64 (smaller wire size)
+//  4. wrap_with_ttl()    - standard Base64 + expiry timestamp
 //
 //  All modes carry a SHA-256 fingerprint.
 //  All modes unwrap via unwrap_verified().
@@ -32,7 +32,7 @@ pub enum EnvelopeMode {
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Envelope {
-    /// Encoded data — opaque to every layer
+    /// Encoded data - opaque to every layer
     pub d: String,
     /// SHA-256 fingerprint of the ORIGINAL raw input (before compression)
     pub f: String,
@@ -72,8 +72,8 @@ impl Envelope {
         }
     }
 
-    /// Compressed wrap — gzip then Base64.
-    /// Use for large payloads. Transparent to consumer — unwrap_verified()
+    /// Compressed wrap - gzip then Base64.
+    /// Use for large payloads. Transparent to consumer - unwrap_verified()
     /// returns the original uncompressed string.
     #[cfg(feature = "compression")]
     pub fn wrap_compressed(input: &str) -> Result<Self, UniversalError> {
@@ -87,7 +87,7 @@ impl Envelope {
         })
     }
 
-    /// TTL wrap — standard Base64 with an expiry time.
+    /// TTL wrap - standard Base64 with an expiry time.
     /// unwrap_verified() returns Err if the envelope has expired.
     pub fn wrap_with_ttl(input: &str, ttl_secs: u64) -> Self {
         let now = SystemTime::now()
@@ -164,7 +164,7 @@ impl Envelope {
         Ok(decoded)
     }
 
-    /// Decode without verification — use when you trust the source.
+    /// Decode without verification - use when you trust the source.
     pub fn unwrap_raw(&self) -> Result<String, UniversalError> {
         let bytes = match self.m {
             EnvelopeMode::Standard | EnvelopeMode::Ttl => {

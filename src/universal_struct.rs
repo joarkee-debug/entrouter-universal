@@ -1,5 +1,5 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Entrouter Universal — Per-Field Struct Wrapping
+//  Entrouter Universal - Per-Field Struct Wrapping
 //
 //  Wraps every field of a struct individually.
 //  If Redis mangles just one field, you know exactly which one.
@@ -85,7 +85,7 @@ impl UniversalStruct {
         }
     }
 
-    /// Verify all fields — returns detailed per-field results
+    /// Verify all fields - returns detailed per-field results
     pub fn verify_all(&self) -> StructVerifyResult {
         let mut all_intact = true;
         let mut violations = Vec::new();
@@ -137,7 +137,7 @@ impl UniversalStruct {
             .collect())
     }
 
-    /// Assert all fields intact — panics with field names if violated
+    /// Assert all fields intact - panics with field names if violated
     pub fn assert_intact(&self) {
         let result = self.verify_all();
         if !result.all_intact {
@@ -156,8 +156,8 @@ impl UniversalStruct {
         out.push_str(&format!("All intact: {}\n\n", result.all_intact));
         for field in &result.fields {
             let status = if field.intact { "✅" } else { "❌ VIOLATED" };
-            out.push_str(&format!("  {}: {} — {}\n", field.name, status,
-                field.value.as_deref().unwrap_or("—")));
+            out.push_str(&format!("  {}: {} - {}\n", field.name, status,
+                field.value.as_deref().unwrap_or("-")));
             if let Some(err) = &field.error {
                 out.push_str(&format!("    Error: {}\n", err));
             }

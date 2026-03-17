@@ -1,8 +1,8 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Entrouter Universal — Compression
+//  Entrouter Universal - Compression
 //
 //  Gzip before Base64. Transparent to the consumer.
-//  Large payloads shrink before encoding — smaller wire size,
+//  Large payloads shrink before encoding - smaller wire size,
 //  same integrity guarantees.
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 

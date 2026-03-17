@@ -1,5 +1,5 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Entrouter Universal — Guardian v2
+//  Entrouter Universal - Guardian v2
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
 
 use crate::{encode_str, decode_str, fingerprint_str};
@@ -72,7 +72,7 @@ impl Guardian {
         out.push_str(&format!("Overall intact: {}\n\n", self.is_intact()));
         for (i, layer) in self.layers.iter().enumerate() {
             let status = if layer.intact { "✅" } else { "❌ VIOLATED" };
-            out.push_str(&format!("  Layer {}: {} — {}\n", i + 1, layer.layer, status));
+            out.push_str(&format!("  Layer {}: {} - {}\n", i + 1, layer.layer, status));
             if !layer.intact {
                 out.push_str(&format!(
                     "    Expected: {}\n    Got:      {}\n",

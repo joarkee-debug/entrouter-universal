@@ -1,5 +1,5 @@
 // ━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
-//  Entrouter Universal — Chain Verification
+//  Entrouter Universal - Chain Verification
 //
 //  Each link in the chain references the previous link's
 //  fingerprint. Unbreakable sequence. Cryptographic audit trail.
@@ -113,7 +113,7 @@ impl Chain {
         self.links.last().unwrap()
     }
 
-    /// Verify the entire chain — every link's data AND every link's
+    /// Verify the entire chain - every link's data AND every link's
     /// reference to the previous link's fingerprint
     pub fn verify(&self) -> ChainVerifyResult {
         if self.links.is_empty() {
@@ -170,7 +170,7 @@ impl Chain {
         self.links.is_empty()
     }
 
-    /// Serialize to JSON — safe to store in Redis, Postgres, send anywhere
+    /// Serialize to JSON - safe to store in Redis, Postgres, send anywhere
     pub fn to_json(&self) -> Result<String, UniversalError> {
         serde_json::to_string(self)
             .map_err(|e| UniversalError::MalformedEnvelope(e.to_string()))
