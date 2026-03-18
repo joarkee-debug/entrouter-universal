@@ -284,6 +284,11 @@ fn call_tool(name: &str, args: &Value) -> Value {
             let remote_cmd = format!("echo '{encoded}' | entrouter raw-decode | sh");
 
             match std::process::Command::new("ssh")
+                .args(&[
+                    "-o", "BatchMode=yes",
+                    "-o", "StrictHostKeyChecking=accept-new",
+                    "-o", "ConnectTimeout=10",
+                ])
                 .arg(host)
                 .arg(&remote_cmd)
                 .output()

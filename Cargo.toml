@@ -1,6 +1,6 @@
 [package]
 name = "entrouter-universal"
-version = "0.7.1"
+version = "0.7.2"
 edition = "2021"
 rust-version = "1.63"
 description = "Pipeline integrity guardian - what goes in, comes out identical."
