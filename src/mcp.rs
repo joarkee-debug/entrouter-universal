@@ -4,15 +4,13 @@ use entrouter_universal::signed_envelope::SignedEnvelope;
 use serde_json::{json, Value};
 use std::io::{self, BufRead, Write};
 
-/// Common SSH args: multiplexing (ControlMaster) + keepalive + timeouts.
-/// ControlMaster reuses connections so the first SSH takes ~2s but subsequent
-/// calls to the same host complete near-instantly. Falls back gracefully on
-/// Windows where Unix sockets aren't available.
+/// Common SSH args: keepalive + timeouts.
+/// On non-Windows platforms, enables ControlMaster multiplexing so the first
+/// SSH takes ~2s but subsequent calls to the same host complete near-instantly.
+/// On Windows, ControlMaster is skipped because Unix sockets are not available.
+#[allow(unused_mut)]
 fn ssh_args() -> Vec<String> {
-    let socket_dir = std::env::temp_dir().join("entrouter-ssh");
-    let _ = std::fs::create_dir_all(&socket_dir);
-    let control_path = socket_dir.join("%r@%h:%p");
-    vec![
+    let mut args = vec![
         "-o".into(),
         "BatchMode=yes".into(),
         "-o".into(),
@@ -23,13 +21,22 @@ fn ssh_args() -> Vec<String> {
         "ServerAliveInterval=5".into(),
         "-o".into(),
         "ServerAliveCountMax=3".into(),
-        "-o".into(),
-        format!("ControlPath={}", control_path.display()),
-        "-o".into(),
-        "ControlMaster=auto".into(),
-        "-o".into(),
-        "ControlPersist=300".into(),
-    ]
+    ];
+    #[cfg(not(target_os = "windows"))]
+    {
+        let socket_dir = std::env::temp_dir().join("entrouter-ssh");
+        let _ = std::fs::create_dir_all(&socket_dir);
+        let control_path = socket_dir.join("%r@%h:%p");
+        args.extend([
+            "-o".into(),
+            format!("ControlPath={}", control_path.display()),
+            "-o".into(),
+            "ControlMaster=auto".into(),
+            "-o".into(),
+            "ControlPersist=300".into(),
+        ]);
+    }
+    args
 }
 
 /// Run the MCP stdio server.

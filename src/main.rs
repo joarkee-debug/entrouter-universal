@@ -3,23 +3,31 @@ use std::process::Command;
 
 mod mcp;
 
-/// Common SSH args: multiplexing (ControlMaster) + keepalive + timeouts.
+/// Common SSH args: keepalive + timeouts.
+/// On non-Windows platforms, enables ControlMaster multiplexing.
+#[allow(unused_mut)]
 fn ssh_args() -> Vec<String> {
-    let socket_dir = std::env::temp_dir().join("entrouter-ssh");
-    let _ = std::fs::create_dir_all(&socket_dir);
-    let control_path = socket_dir.join("%r@%h:%p");
-    vec![
+    let mut args = vec![
         "-o".into(),
         "ServerAliveInterval=5".into(),
         "-o".into(),
         "ServerAliveCountMax=3".into(),
-        "-o".into(),
-        format!("ControlPath={}", control_path.display()),
-        "-o".into(),
-        "ControlMaster=auto".into(),
-        "-o".into(),
-        "ControlPersist=300".into(),
-    ]
+    ];
+    #[cfg(not(target_os = "windows"))]
+    {
+        let socket_dir = std::env::temp_dir().join("entrouter-ssh");
+        let _ = std::fs::create_dir_all(&socket_dir);
+        let control_path = socket_dir.join("%r@%h:%p");
+        args.extend([
+            "-o".into(),
+            format!("ControlPath={}", control_path.display()),
+            "-o".into(),
+            "ControlMaster=auto".into(),
+            "-o".into(),
+            "ControlPersist=300".into(),
+        ]);
+    }
+    args
 }
 
 fn main() {
