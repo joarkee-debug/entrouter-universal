@@ -127,6 +127,99 @@ Ten commands. All pipe-friendly. All shell-safe.
 | `entrouter verify` | JSON with encoded + fingerprint -> INTACT or TAMPERED |
 | `entrouter raw-encode` | Stdin -> raw base64 (no JSON wrapper) |
 | `entrouter raw-decode` | Base64 -> original (no JSON wrapper) |
+| `entrouter mcp` | Start the MCP server (for AI agents in VS Code, Cursor, etc.) |
+
+---
+
+## MCP Server - AI Agent Integration
+
+Entrouter ships with a built-in [MCP (Model Context Protocol)](https://modelcontextprotocol.io/) server. This lets AI agents like GitHub Copilot, Claude, or any MCP-compatible client use entrouter's tools directly — encoding, decoding, fingerprinting, integrity checks, and **running commands on remote servers via SSH** without any shell escaping issues.
+
+### Setup (2 minutes)
+
+**1. Install entrouter**
+
+```bash
+cargo install entrouter-universal
+```
+
+**2. Add to VS Code**
+
+Open your VS Code settings JSON and add:
+
+<table>
+<tr>
+<td width="50%">
+
+**Global** (all workspaces)
+
+Edit `settings.json` → add:
+```json
+{
+  "mcp": {
+    "servers": {
+      "entrouter": {
+        "type": "stdio",
+        "command": "entrouter",
+        "args": ["mcp"]
+      }
+    }
+  }
+}
+```
+
+</td>
+<td width="50%">
+
+**Per-workspace**
+
+Create `.vscode/mcp.json`:
+```json
+{
+  "servers": {
+    "entrouter": {
+      "type": "stdio",
+      "command": "entrouter",
+      "args": ["mcp"]
+    }
+  }
+}
+```
+
+</td>
+</tr>
+</table>
+
+That's it. Restart VS Code and the tools are available to your AI agent.
+
+### Available MCP Tools
+
+| Tool | What it does |
+|---|---|
+| `entrouter_encode` | Encode text → base64 + SHA-256 fingerprint (JSON output) |
+| `entrouter_decode` | Decode base64 back to original text |
+| `entrouter_verify` | Check data integrity — INTACT or TAMPERED |
+| `entrouter_raw_encode` | Encode text → plain base64 (no wrapper) |
+| `entrouter_raw_decode` | Decode plain base64 → original text |
+| `entrouter_fingerprint` | Compute SHA-256 fingerprint of any text |
+| `entrouter_ssh` | **Run any command on a remote server via SSH** — no escaping needed |
+
+### SSH Tool Requirements
+
+The `entrouter_ssh` tool lets your AI agent run commands on remote servers. For it to work:
+
+1. **SSH key access** — your machine must be able to `ssh user@host` without a password prompt
+2. **Entrouter on the remote** — install on the remote server too: `cargo install entrouter-universal`
+
+Once set up, your AI agent can do things like:
+- Check server health: `curl -s http://localhost:3000/health`
+- Restart services: `systemctl restart my-service`
+- Read logs: `journalctl -u my-service --no-pager -n 50`
+- Run database queries, deploy code, debug production — anything you'd type in a terminal
+
+All commands are base64-encoded locally, sent over SSH, decoded on the remote, and executed. No escaping. 30-second timeout prevents hangs.
+
+---
 
 ### SSH - The Killer Feature
 
@@ -400,6 +493,14 @@ Zero-width chars     ✅  ​‌‍
 ---
 
 ## Changelog
+
+### v0.7 - MCP Server (AI Agent Integration)
+- `entrouter mcp` - built-in MCP server for VS Code Copilot, Claude, Cursor, and any MCP-compatible client
+- 7 tools exposed: encode, decode, verify, raw-encode, raw-decode, fingerprint, SSH
+- `entrouter_ssh` MCP tool - lets AI agents run commands on remote servers with zero escaping
+- SSH tool: BatchMode, StrictHostKeyChecking, ConnectTimeout for non-interactive use
+- SSH tool: 30-second execution timeout prevents MCP server hangs
+- Newline-delimited JSON protocol over stdio
 
 ### v0.6 - Docker, Kubernetes, Cron, Exec
 - `entrouter docker <container>` - run commands inside Docker containers without escaping
