@@ -6,7 +6,7 @@
 
 [![Crates.io](https://img.shields.io/crates/v/entrouter-universal?style=flat-square&color=fc8d62)](https://crates.io/crates/entrouter-universal)
 [![Downloads](https://img.shields.io/crates/d/entrouter-universal?style=flat-square&color=66c2a5)](https://crates.io/crates/entrouter-universal)
-[![License](https://img.shields.io/crates/l/entrouter-universal?style=flat-square&color=8da0cb)](https://github.com/joarkee-debug/Entrouter-Universal/blob/main/LICENSE)
+[![License](https://img.shields.io/crates/l/entrouter-universal?style=flat-square&color=8da0cb)](https://github.com/Entrouter/entrouter-universal/blob/main/LICENSE)
 [![Rust](https://img.shields.io/badge/rust-1.63%2B-orange?style=flat-square)](https://www.rust-lang.org)
 [![docs.rs](https://img.shields.io/docsrs/entrouter-universal?style=flat-square&color=e78ac3)](https://docs.rs/entrouter-universal)
 
