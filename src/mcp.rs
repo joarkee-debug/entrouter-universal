@@ -285,9 +285,12 @@ fn call_tool(name: &str, args: &Value) -> Value {
 
             match std::process::Command::new("ssh")
                 .args([
-                    "-o", "BatchMode=yes",
-                    "-o", "StrictHostKeyChecking=accept-new",
-                    "-o", "ConnectTimeout=10",
+                    "-o",
+                    "BatchMode=yes",
+                    "-o",
+                    "StrictHostKeyChecking=accept-new",
+                    "-o",
+                    "ConnectTimeout=10",
                 ])
                 .arg(host)
                 .arg(&remote_cmd)
@@ -339,16 +342,12 @@ fn call_tool(name: &str, args: &Value) -> Value {
                             Ok(None) => {
                                 if start.elapsed() > timeout {
                                     let _ = child.kill();
-                                    break tool_error(
-                                        "SSH command timed out after 30 seconds",
-                                    );
+                                    break tool_error("SSH command timed out after 30 seconds");
                                 }
                                 std::thread::sleep(std::time::Duration::from_millis(100));
                             }
                             Err(e) => {
-                                break tool_error(&format!(
-                                    "Failed to wait on SSH process: {e}"
-                                ));
+                                break tool_error(&format!("Failed to wait on SSH process: {e}"));
                             }
                         }
                     }
