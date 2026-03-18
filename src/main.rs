@@ -3,6 +3,20 @@ use std::process::Command;
 
 mod mcp;
 
+/// Common SSH args: multiplexing (ControlMaster) + keepalive + timeouts.
+fn ssh_args() -> Vec<String> {
+    let socket_dir = std::env::temp_dir().join("entrouter-ssh");
+    let _ = std::fs::create_dir_all(&socket_dir);
+    let control_path = socket_dir.join("%r@%h:%p");
+    vec![
+        "-o".into(), "ServerAliveInterval=5".into(),
+        "-o".into(), "ServerAliveCountMax=3".into(),
+        "-o".into(), format!("ControlPath={}", control_path.display()),
+        "-o".into(), "ControlMaster=auto".into(),
+        "-o".into(), "ControlPersist=300".into(),
+    ]
+}
+
 fn main() {
     let args: Vec<String> = std::env::args().collect();
 
@@ -233,6 +247,7 @@ fn cmd_ssh(host: &str, command: &str) {
     let remote_cmd = format!("echo '{}' | entrouter raw-decode | sh", encoded);
 
     let status = Command::new("ssh")
+        .args(ssh_args())
         .arg(host)
         .arg(&remote_cmd)
         .stdin(std::process::Stdio::inherit())
@@ -259,6 +274,7 @@ fn cmd_multi_ssh(hosts_str: &str, command: &str) {
     for host in &hosts {
         eprintln!("[{}]", host);
         let status = Command::new("ssh")
+            .args(ssh_args())
             .arg(host)
             .arg(&remote_cmd)
             .stdin(std::process::Stdio::inherit())

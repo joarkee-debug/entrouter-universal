@@ -4,6 +4,26 @@ use entrouter_universal::signed_envelope::SignedEnvelope;
 use serde_json::{json, Value};
 use std::io::{self, BufRead, Write};
 
+/// Common SSH args: multiplexing (ControlMaster) + keepalive + timeouts.
+/// ControlMaster reuses connections so the first SSH takes ~2s but subsequent
+/// calls to the same host complete near-instantly. Falls back gracefully on
+/// Windows where Unix sockets aren't available.
+fn ssh_args() -> Vec<String> {
+    let socket_dir = std::env::temp_dir().join("entrouter-ssh");
+    let _ = std::fs::create_dir_all(&socket_dir);
+    let control_path = socket_dir.join("%r@%h:%p");
+    vec![
+        "-o".into(), "BatchMode=yes".into(),
+        "-o".into(), "StrictHostKeyChecking=accept-new".into(),
+        "-o".into(), "ConnectTimeout=10".into(),
+        "-o".into(), "ServerAliveInterval=5".into(),
+        "-o".into(), "ServerAliveCountMax=3".into(),
+        "-o".into(), format!("ControlPath={}", control_path.display()),
+        "-o".into(), "ControlMaster=auto".into(),
+        "-o".into(), "ControlPersist=300".into(),
+    ]
+}
+
 /// Run the MCP stdio server.
 /// Reads JSON-RPC messages (newline-delimited JSON) from stdin,
 /// writes responses to stdout.
@@ -507,14 +527,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
             let remote_cmd = format!("echo '{encoded}' | entrouter raw-decode | sh");
 
             match std::process::Command::new("ssh")
-                .args([
-                    "-o",
-                    "BatchMode=yes",
-                    "-o",
-                    "StrictHostKeyChecking=accept-new",
-                    "-o",
-                    "ConnectTimeout=10",
-                ])
+                .args(ssh_args())
                 .arg(host)
                 .arg(&remote_cmd)
                 .stdout(std::process::Stdio::piped())
@@ -835,14 +848,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
 
             for host in &hosts {
                 let result = match std::process::Command::new("ssh")
-                    .args([
-                        "-o",
-                        "BatchMode=yes",
-                        "-o",
-                        "StrictHostKeyChecking=accept-new",
-                        "-o",
-                        "ConnectTimeout=10",
-                    ])
+                    .args(ssh_args())
                     .arg(host)
                     .arg(&remote_cmd)
                     .stdout(std::process::Stdio::piped())
