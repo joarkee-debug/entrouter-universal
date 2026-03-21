@@ -1,3 +1,17 @@
+// Copyright 2026 John A Keeney - Entrouter
+//
+// Licensed under the Apache License, Version 2.0 (the "License");
+// you may not use this file except in compliance with the License.
+// You may obtain a copy of the License at
+//
+//     http://www.apache.org/licenses/LICENSE-2.0
+//
+// Unless required by applicable law or agreed to in writing, software
+// distributed under the License is distributed on an "AS IS" BASIS,
+// WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+// See the License for the specific language governing permissions and
+// limitations under the License.
+
 use entrouter_universal::chain::Chain;
 use entrouter_universal::envelope::Envelope;
 use entrouter_universal::signed_envelope::SignedEnvelope;
@@ -666,6 +680,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 .args(ssh_args())
                 .arg(host)
                 .arg(&remote_cmd)
+                .stdin(std::process::Stdio::null())
                 .stdout(std::process::Stdio::piped())
                 .stderr(std::process::Stdio::piped())
                 .spawn()
@@ -781,6 +796,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
 
             match std::process::Command::new("docker")
                 .args(["exec", container, "sh", "-c", &decode_cmd])
+                .stdin(std::process::Stdio::null())
                 .stdout(std::process::Stdio::piped())
                 .stderr(std::process::Stdio::piped())
                 .spawn()
@@ -818,6 +834,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
 
             match std::process::Command::new("kubectl")
                 .args(&cmd_args)
+                .stdin(std::process::Stdio::null())
                 .stdout(std::process::Stdio::piped())
                 .stderr(std::process::Stdio::piped())
                 .spawn()
@@ -851,6 +868,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
                     .args(ssh_args())
                     .arg(host)
                     .arg(&remote_cmd)
+                    .stdin(std::process::Stdio::null())
                     .stdout(std::process::Stdio::piped())
                     .stderr(std::process::Stdio::piped())
                     .spawn()
@@ -1025,6 +1043,7 @@ fn call_tool(name: &str, args: &Value) -> Value {
                 .args(ssh_args())
                 .arg(host)
                 .arg(&remote_cmd)
+                .stdin(std::process::Stdio::null())
                 .stdout(std::process::Stdio::piped())
                 .stderr(std::process::Stdio::piped())
                 .spawn()
