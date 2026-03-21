@@ -110,14 +110,13 @@ fn format_output(stdout: &str, stderr: &str, status: &std::process::ExitStatus) 
 
 /// Run the MCP stdio server.
 /// Reads JSON-RPC messages (newline-delimited JSON) from stdin,
-/// writes responses to stdout.
+/// writes responses to stdout. Tool calls are dispatched to threads
+/// so multiple SSH/docker/kube commands can run concurrently.
 pub fn run() {
     let stdin = io::stdin();
-    let stdout = io::stdout();
-    let reader = stdin.lock();
-    let mut writer = stdout.lock();
+    let writer = std::sync::Arc::new(std::sync::Mutex::new(io::stdout()));
 
-    for line in reader.lines() {
+    for line in stdin.lock().lines() {
         let line = match line {
             Ok(l) => l,
             Err(_) => break,
@@ -132,16 +131,29 @@ pub fn run() {
             Err(_) => continue,
         };
 
-        if let Some(response) = handle_request(&request) {
-            write_response(&mut writer, &response);
+        let method = request["method"].as_str().unwrap_or("");
+
+        // Tool calls may block (SSH, docker, etc.) -- handle in a thread
+        // so the main loop can keep reading the next request.
+        if method == "tools/call" {
+            let w = writer.clone();
+            std::thread::spawn(move || {
+                if let Some(response) = handle_request(&request) {
+                    write_response(&w, &response);
+                }
+            });
+        } else if let Some(response) = handle_request(&request) {
+            write_response(&writer, &response);
         }
     }
 }
 
-fn write_response(writer: &mut impl Write, message: &Value) {
+fn write_response(writer: &std::sync::Arc<std::sync::Mutex<io::Stdout>>, message: &Value) {
     let body = serde_json::to_string(message).unwrap();
-    let _ = writeln!(writer, "{}", body);
-    let _ = writer.flush();
+    if let Ok(mut w) = writer.lock() {
+        let _ = writeln!(w, "{}", body);
+        let _ = w.flush();
+    }
 }
 
 fn handle_request(request: &Value) -> Option<Value> {
